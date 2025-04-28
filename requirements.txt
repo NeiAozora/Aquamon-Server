@@ -1,0 +1,6 @@
+Flask>= 2.1.1
+psycopg2-binary>=2.9.3
+Flask-SQLAlchemy>=2.5.1
+PyJWT>=2.4.0
+bcrypt>=4.0.1
+dotenv>=0.9.9
