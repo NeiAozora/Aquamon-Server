@@ -37,11 +37,12 @@ class Logger:
         # Prevent log duplication
         self.logger.propagate = False
 
-    def get_logger(self):
+    @classmethod
+    def get_logger(cls):
         """
-        Returns the logger instance.
+        Returns the logger instance. This makes it callable without an instance.
         """
-        return self.logger
+        return cls().logger  # Creates an instance and returns the logger
 
 # Default logger setup
 logger = Logger().get_logger()

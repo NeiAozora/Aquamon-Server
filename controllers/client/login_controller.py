@@ -39,3 +39,26 @@ class LoginController:
             }), 200
         else:
             return jsonify({'message': 'Invalid username or password'}), 401
+
+    def login_with_token(self):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'message': 'Token required'}), 401
+
+        token = auth_header.split(' ')[1]
+
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+            user = User.query.filter_by(id_user=payload['id_user']).first()
+            if user:
+                return jsonify({
+                    'message': 'Token valid',
+                    'id_user': user.id_user,
+                    'username': user.username
+                }), 200
+            else:
+                return jsonify({'message': 'User not found'}), 404
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Invalid token'}), 401
