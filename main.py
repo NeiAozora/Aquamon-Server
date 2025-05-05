@@ -1,41 +1,43 @@
 from core.server import Server
 from core.service import BackgroundService
+from core.logger import logger
 from config import HOST_DEVELOPMENT
 import sys
 import threading
-import time
-import traceback
+import queue
 
-sys.dont_write_bytecode = True
+from core.global_state import SharedState  # Import the shared state
+
+# Initialize shared state
+shared_state = SharedState()
 
 def run_background_service():
-    try:
-        background_service = BackgroundService()
-        background_service.run()
-    except Exception:
-        print("[BackgroundService] Crashed. Retrying once...")
-        traceback.print_exc()
-        try:
-            background_service = BackgroundService()
-            background_service.run()
-        except Exception:
-            print("[BackgroundService] Failed again. Giving up.")
-            traceback.print_exc()
+    comm_queue = queue.Queue()
+
+    # Create and run the background service
+    background_service = BackgroundService(comm_queue)
+    background_service.run()
+
+    # Example of setting a shared value
+    comm_queue.put("set_value")  # Request to set shared value
+    comm_queue.put(logger)  # The value to set
 
 
 if __name__ == "__main__":
-    # Jalankan background service di thread terpisah dengan restart logic
-    background_service_thread = threading.Thread(target=run_background_service, daemon=True)
-    background_service_thread.start()
-
     try:
-        # Jalankan Flask server di thread utama
+        # Start Flask server in the main thread
         server = Server()
+
+        # Set the global server instance
+        shared_state.set_global_server(server)
+
+        # Running background service in a separate thread
+        background_service_thread = threading.Thread(target=run_background_service, daemon=True)
+        background_service_thread.start()
+
+        # Running Flask app in the main thread
         server.run(host=HOST_DEVELOPMENT, debug=True)
+
     except KeyboardInterrupt:
         print("Shutting down gracefully...")
         sys.exit(0)
-    except Exception as e:
-        print("[Server] Crashed with exception:")
-        traceback.print_exc()
-        sys.exit(1)

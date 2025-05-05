@@ -9,3 +9,8 @@ class Kolam(db.Model):
     lokasi = db.Column(db.String(255))
     deskripsi = db.Column(db.Text)
     pengurasan_otomatis = db.Column(db.Boolean, default=True)
+
+    device_status = db.relationship('DeviceStatus', backref='kolam', cascade="all, delete-orphan", uselist=False)
+    notifikasi = db.relationship('Notifikasi', backref='kolam', cascade="all, delete-orphan")
+    riwayat_amonia = db.relationship('RiwayatAmonia', backref='kolam', cascade="all, delete-orphan")
+    riwayat_pengurasan = db.relationship('RiwayatPengurasan', backref='kolam', cascade="all, delete-orphan")

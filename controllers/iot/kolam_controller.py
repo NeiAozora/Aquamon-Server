@@ -1,51 +1,57 @@
-from flask import request
+from flask import request, jsonify
 from datetime import datetime, timedelta
 from models.riwayat_amonia import RiwayatAmonia
-from models.user_settings import  UserSettings
+from models.user_settings import UserSettings
 from core.db import db
-from core.global_var import status_amonia_terakhir
+from core.global_state import amonia_cache, iot_command_manager
+from helpers.auth import decode_token_and_get_user
 
 class KolamController:
-    
     def get_kolam_setting(self):
-        # pukul rata semua iot konfigurasi sama, setiap IOT akan melakukan update setiap 10 detik unutk mendapatkan data
+
+        # Semua IOT menggunakan satu setting yang sama
         setting = db.session.query(UserSettings).first()
-        
-        nilai = setting.batasan_amonia
-        
-        return {"batas_amonia" : nilai},200
-    
+        if not setting:
+            return jsonify({"message": "User settings not configured"}), 500
+
+        return jsonify({"batas_amonia": setting.batasan_amonia}), 200
+
     def update_status(self):
-        # Ambil data JSON dari request POST
-        data = request.get_json()
-        id_kolam = data.get("id_kolam")
-        nilai_amonia = data.get("nilai_amonia")
 
-        # Validasi input wajib
-        if id_kolam is None or nilai_amonia is None:
-            return {"error": "id_kolam dan nilai_amonia wajib diisi"}, 400
+        data = request.get_json(silent=True)
+        if not data or 'id_kolam' not in data or 'nilai_amonia' not in data:
+            return jsonify({"error": "id_kolam dan nilai_amonia wajib diisi"}), 400
 
-        sekarang = datetime.utcnow()
-        global status_amonia_terakhir
+        id_kolam = data['id_kolam']
+        nilai_amonia = data['nilai_amonia']
 
-        # Ambil status terakhir dari cache global
-        status = status_amonia_terakhir.get(id_kolam)
+        # Validasi tipe input
+        if not isinstance(id_kolam, int) or not isinstance(nilai_amonia, (int, float)):
+            return jsonify({"error": "Invalid id_kolam or nilai_amonia type"}), 400
 
-        if status is None:
-            # Jika belum pernah tercatat, langsung simpan ke DB
-            self._simpan_ke_db(id_kolam, nilai_amonia, sekarang)
-            status_amonia_terakhir[id_kolam] = {'nilai': nilai_amonia, 'terakhir': sekarang}
-        else:
-            terakhir = status['terakhir']
-            # Simpan ke DB hanya jika sudah lewat 3 jam sejak pencatatan terakhir
-            if sekarang - terakhir >= timedelta(hours=3):
-                self._simpan_ke_db(id_kolam, nilai_amonia, sekarang)
-                status_amonia_terakhir[id_kolam] = {'nilai': nilai_amonia, 'terakhir': sekarang}
-            else:
-                # Jika belum waktunya, hanya update nilai di cache
-                status_amonia_terakhir[id_kolam]['nilai'] = nilai_amonia
+        # Update cache tanpa simpan DB
+        amonia_cache.update_status(id_kolam, nilai_amonia)
 
-        return {"message": "Status amonia diperbarui"}, 200
+        return jsonify({"message": "Status amonia diperbarui"}), 200
+
+    def get_command(self):
+
+        data = request.get_json(silent=True)
+        if not data or 'id_kolam' not in data:
+            return jsonify({"error": "id_kolam wajib diisi"}), 400
+
+        id_kolam = data['id_kolam']
+
+        # Ambil perintah yang aktif untuk kolam tersebut
+        command = iot_command_manager.get_command(id_kolam)
+        
+        if not command:
+            return jsonify({"message": f"Tidak ada perintah aktif untuk kolam {id_kolam}"}), 404
+
+        return jsonify({
+            "id_kolam": id_kolam,
+            "command": command
+        }), 200
 
     def _simpan_ke_db(self, id_kolam: int, nilai_amonia: float, waktu: datetime):
         """

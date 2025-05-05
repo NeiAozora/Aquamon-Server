@@ -11,10 +11,28 @@ from models.riwayat_amonia import RiwayatAmonia
 from models.riwayat_pengurasan import RiwayatPengurasan
 from models.user_settings import UserSettings
 
+# Module-level variable to hold the Server instance
+global_server = None
+
+def set_global_server(server_instance):
+    """
+    Set the global server instance so that other threads can import it.
+    """
+    global global_server
+    global_server = server_instance
+
+
+def get_global_server():
+    """
+    Get the global server instance.
+    """
+    return global_server
+
 class Server:
     def __init__(self):
         self.app = Flask(__name__)
         self.app.config.from_object(Config)
+
         db.init_app(self.app)
         self._setup()
 
@@ -35,5 +53,10 @@ class Server:
             for model in models:
                 model.__table__.create(db.engine, checkfirst=True)
 
+    def get_flask_instance(self):
+        return self.app
+
     def run(self, **kwargs):
         self.app.run(**kwargs)
+
+

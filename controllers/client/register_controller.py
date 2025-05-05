@@ -25,7 +25,7 @@ class RegisterController:
         name = data.get('name')
         username = data.get('username')
         password = data.get('password')
-        nomer_telpon = data.get('nomer_telpon')
+        nomer_telepon = data.get('nomer_telepon')
 
         if not all([name, username, password]):
             return jsonify({'message': 'Name, username, and password are required'}), 400
@@ -38,7 +38,7 @@ class RegisterController:
             name=name,
             username=username,
             password=hashed_password,
-            nomer_telpon=nomer_telpon
+            nomer_telepon=nomer_telepon
         )
         db.session.add(new_user)
         db.session.commit()
