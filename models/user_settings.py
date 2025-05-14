@@ -8,4 +8,3 @@ class UserSettings(db.Model):
     batasan_amonia = db.Column(db.Float, default=0.25)
     jeda_waktu_simpan_riwayat = db.Column(db.Integer, default=60*6)  # dalam menit
 
-{ "id_setting" : int, "id_user" : int , "batasan_amonia" : float , "jeda_waktu_simpan_riwayat" : int (minutes) }
