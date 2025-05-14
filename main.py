@@ -1,42 +1,37 @@
-from core.server import Server
-from core.service import BackgroundService
-from core.logger import logger
-from config import HOST_DEVELOPMENT
 import sys
 import threading
-import queue
+import asyncio
 
-from core.global_state import SharedState  # Import the shared state
+from core.server import Server
+from core.logger import logger
+from config import HOST_DEVELOPMENT
+from services.check_amonia_service import AmoniaChecker
 
-# Initialize shared state
-shared_state = SharedState()
 
-def run_background_service():
-    comm_queue = queue.Queue()
+def start_background_loop(loop, amonia_checker):
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(amonia_checker.run())
 
-    # Create and run the background service
-    background_service = BackgroundService(comm_queue)
-    background_service.run()
-
-    # Example of setting a shared value
-    comm_queue.put("set_value")  # Request to set shared value
-    comm_queue.put(logger)  # The value to set
-
+async def run_server(server):
+    server.run(host=HOST_DEVELOPMENT, debug=True)
 
 if __name__ == "__main__":
     try:
-        # Start Flask server in the main thread
         server = Server()
 
-        # Set the global server instance
-        shared_state.set_global_server(server)
+        # Jalankan background task di thread terpisah
+        background_loop = asyncio.new_event_loop()
+        amonia_checker = AmoniaChecker(server.app)
 
-        # Running background service in a separate thread
-        background_service_thread = threading.Thread(target=run_background_service, daemon=True)
-        background_service_thread.start()
+        background_thread = threading.Thread(
+            target=start_background_loop,
+            args=(background_loop, amonia_checker),
+            daemon=True
+        )
+        background_thread.start()
 
-        # Running Flask app in the main thread
-        server.run(host=HOST_DEVELOPMENT, debug=True)
+        # Jalankan server di thread utama
+        asyncio.run(run_server(server))
 
     except KeyboardInterrupt:
         print("Shutting down gracefully...")

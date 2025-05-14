@@ -39,6 +39,7 @@ def seed():
             name="Ahmad Fauzan", 
             username="fauzan", 
             password=hashed_password, 
+            foto_profil="",
             nomer_telepon="083119624458"
         )
 

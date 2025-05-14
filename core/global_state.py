@@ -2,36 +2,21 @@ from datetime import datetime
 from threading import Lock
 from helpers.iot_events import *
 
-import threading
-
-class SharedState:
-    def __init__(self):
-        self.lock = threading.Lock()  # Lock to ensure thread safety
-        self._global_server = None  # Place for the global server instance
-
-    def set_global_server(self, server_instance):
-        with self.lock:
-            self._global_server = server_instance
-
-    def get_global_server(self):
-        with self.lock:
-            return self._global_server
-
-
-
 class AmoniaStatusCache:
     def __init__(self):
         self._cache = {}  # {id_kolam: {'nilai': float, 'terakhir': datetime}}
         self._lock = Lock()
 
-    def update_status(self, id_kolam, nilai):
+    def update(self, id_kolam, nilai, cooldown_ms_tersisa, keran_dibuka):
         with self._lock:
             self._cache[id_kolam] = {
                 'nilai': nilai,
-                'terakhir': datetime.now()
+                'terakhir': datetime.now(),
+                'cooldown_tersisa' : cooldown_ms_tersisa,
+                'keran_dibuka' : keran_dibuka
             }
 
-    def get_status(self, id_kolam):
+    def get(self, id_kolam):
         return self._cache.get(id_kolam)
 
     def clear_cache(self, id_kolam):

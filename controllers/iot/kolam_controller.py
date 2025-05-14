@@ -7,7 +7,7 @@ from core.global_state import amonia_cache, iot_command_manager
 from helpers.auth import decode_token_and_get_user
 
 class KolamController:
-    def get_kolam_setting(self):
+    def get_kolam_settings(self):
 
         # Semua IOT menggunakan satu setting yang sama
         setting = db.session.query(UserSettings).first()
@@ -24,17 +24,19 @@ class KolamController:
 
         id_kolam = data['id_kolam']
         nilai_amonia = data['nilai_amonia']
+        cooldown_ms_tersisa = data["cooldown_tersisa"]
+        keran_dibuka = data["keran_dibuka"]
 
         # Validasi tipe input
         if not isinstance(id_kolam, int) or not isinstance(nilai_amonia, (int, float)):
             return jsonify({"error": "Invalid id_kolam or nilai_amonia type"}), 400
 
         # Update cache tanpa simpan DB
-        amonia_cache.update_status(id_kolam, nilai_amonia)
+        amonia_cache.update_status(id_kolam, nilai_amonia, cooldown_ms_tersisa, keran_dibuka)
 
         return jsonify({"message": "Status amonia diperbarui"}), 200
 
-    def get_command(self):
+    def get_commands(self):
 
         data = request.get_json(silent=True)
         if not data or 'id_kolam' not in data:
@@ -52,6 +54,26 @@ class KolamController:
             "id_kolam": id_kolam,
             "command": command
         }), 200
+        
+    def update_command_status(self):
+        
+        data = request.get_json(silent=True)
+        if not data or 'id_kolam' or 'status' not in data:
+            return jsonify({"error": "id_kolam atau nilai status perintah wajib diisi"}), 400
+
+        id_kolam = data['id_kolam']
+        
+        nilai_status = data['status']
+        if not int.is_integer(nilai_status):
+            return jsonify({"error": "nilai status perintah wajib berisi nilai yang valid"}), 400
+            
+
+        # Ambil perintah yang aktif untuk kolam tersebut
+        iot_command_manager.update_status(id_kolam, data)
+        
+        return 200
+        
+        
 
     def _simpan_ke_db(self, id_kolam: int, nilai_amonia: float, waktu: datetime):
         """

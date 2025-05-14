@@ -46,9 +46,10 @@ def register_routes(app):
     route.put("/api/client/notifications/<id>/read-status", NotifikasiController, "update_status_dibaca")
 
     # RIWAYAT PENGECEKAN AMONIA
-    route.get("/api/client/amonia-history", RiwayatPengecekanController, "get_riwayat")
-    route.get("/api/client/amonia-history/<id>", RiwayatPengecekanController, "get_riwayat")
-    route.delete("/api/client/amonia-history/<id>", RiwayatPengecekanController, "delete")
+    route.get("/api/client/amonia-history", RiwayatPengecekanController, "get_riwayat", alias="get_riwayat_list")
+    route.get("/api/client/amonia-history/<id>", RiwayatPengecekanController, "get_riwayat", alias="get_riwayat_detail")
+
+    route.delete("/api/client/amonia-history/<id>", RiwayatPengecekanController, "delete_riwayat")
 
     # PENGATURAN
     route.get("/api/client/settings", PengaturanController, "get_settings")
@@ -56,6 +57,7 @@ def register_routes(app):
 
     # IOT SIDE ROUTES
 
-    route.put("/api/iot/status", IOTKolamController, "update_status")
+    route.post("/api/iot/status", IOTKolamController, "update_status")
     route.get("/api/iot/settings", IOTKolamController, "get_kolam_settings")
-    route.get("/api/iot/commands", IOTKolamController, "get_commands")
+    route.get("/api/iot/<id>/commands/", IOTKolamController, "get_commands")
+    route.put("/api/iot/1/commands/update-status", IOTKolamController, "update_command_status")
